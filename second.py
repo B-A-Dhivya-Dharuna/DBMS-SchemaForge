@@ -30,9 +30,15 @@ truth = [
     (("ArtistId",), "ArtistName"), (("GenreId",), "GenreName"),
 ]
 
-for min_rhs, max_u in [(0, 1.0), (5, 1.0), (0, 0.5), (5, 0.5)]:
-    found = discover_fds_approx(flat, max_lhs=1, threshold=0.0,
-                                min_rhs_distinct=min_rhs, max_lhs_uniqueness=max_u)
-    p, r, _ = score_fds(found, truth, list(flat.columns))
-    print(f"min_rhs_distinct={min_rhs} max_lhs_uniqueness={max_u}: "
-          f"precision={p:.2f} recall={r:.2f} ({len(found)} FDs)")
+from pipeline import analyze, print_report
+res = analyze(flat)
+print_report(res)
+
+p, r, _ = score_fds(res["fds"], truth, list(flat.columns))
+print(f"all reported: precision={p:.2f} recall={r:.2f} ({len(res['fds'])} FDs)")
+
+confirmed = [f for f in res["fds"]
+             if not res["fd_ratings"][(f[0], f[1])].startswith("uncertain")]
+p, r, _ = score_fds(confirmed, truth, list(flat.columns))
+print(f"confirmed only: precision={p:.2f} recall={r:.2f} "
+      f"({len(confirmed)} confirmed, {len(res['fds']) - len(confirmed)} flagged uncertain)")

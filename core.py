@@ -79,3 +79,32 @@ def score_fds(found, truth, columns):
     precision = len(explained) / len(found_pairs)
     recall = len(explained) / len(true_pairs)
     return precision, recall, sorted(found_pairs - true_pairs)
+
+def collapse_equivalents(found):
+    pairs = {(l[0], r) for l, r, *_ in found if len(l) == 1}
+    cols = {c for p in pairs for c in p}
+    group = {c: c for c in cols}
+
+    def find(c):
+        while group[c] != c:
+            c = group[c]
+        return c
+
+    for a, b in pairs:
+        if (b, a) in pairs:
+            group[find(a)] = find(b)
+
+    members = {}
+    for c in cols:
+        members.setdefault(find(c), []).append(c)
+
+    rep = {}
+    for ms in members.values():
+        ms = sorted(ms)
+        best = next((m for m in ms if m.lower().endswith("id")), ms[0])
+        for m in ms:
+            rep[m] = best
+
+    kept = [(l, r, e) for l, r, e in found
+            if len(l) == 1 and rep.get(l[0], l[0]) == l[0]]
+    return kept, rep
